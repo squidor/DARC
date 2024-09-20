@@ -1,0 +1,131 @@
+
+function buildSimpleLLCWithBoardMembers(
+  L0TokenOwnerList,
+  L0TokenNumberList,
+  L1TokenOwnerList,
+  L1TokenNumberList,
+  approvalThreshold,
+  votingDurationInSeconds,
+  executionDurationInSeconds,
+  bIsAbsoluteMajority
+)
+{
+
+
+  // check input length
+  if (L0TokenOwnerList.length !== L0TokenNumberList.length) {
+    throw new Error('The length of L0TokenOwnerList and L0TokenNumberList should be the same.');
+  }
+
+  if (L1TokenOwnerList.length !== L1TokenNumberList.length) {
+    throw new Error('The length of L1TokenOwnerList and L1TokenNumberList should be the same.');
+  }
+
+  // make sure that approvalThreshold is a number in range(0, 100)
+  if (typeof approvalThreshold !== 'number') {
+    throw new Error('ApprovalThreshold should be a number.');
+  }
+  if (approvalThreshold < 0 || approvalThreshold > 100) {
+    throw new Error('ApprovalThreshold should be a number in range(0, 100).');
+  }
+
+  // make sure that token numbers are all positive and integers
+  for (let i = 0; i < L0TokenNumberList.length; i++) {
+    if (typeof L0TokenNumberList[i] !== 'number' || L0TokenNumberList[i] < 0 || L0TokenNumberList[i] % 1 !== 0) {
+      throw new Error('The token number should be a positive integer.');
+    }
+  }
+
+  for (let i = 0; i < L1TokenNumberList.length; i++) {
+    if (typeof L1TokenNumberList[i] !== 'number' || L1TokenNumberList[i] < 0 || L1TokenNumberList[i] % 1 !== 0) {
+      throw new Error('The token number should be a positive integer.');
+    }
+  }
+
+  // make sure that all the token owners are addresses
+  for (let i = 0; i < L0TokenOwnerList.length; i++) {
+    if (typeof L0TokenOwnerList[i] !== 'string') {
+      throw new Error('The token owner should be an address.');
+    }
+  }
+
+  for (let i = 0; i < L1TokenOwnerList.length; i++) {
+    if (typeof L1TokenOwnerList[i] !== 'string') {
+      throw new Error('The token owner should be an address.');
+    }
+  }
+
+
+  // deploy plugins
+
+  // 1. create token classes: L0 and L1
+
+
+  batch_create_token_classes(
+    ["L0-COMMON-STOCK", "L1-BOARD-MEMBERS"],
+    [0, 1],
+    [1, 1],
+    [1, 0]
+  )
+
+  // 2. mint tokens
+  // 2.1 initialize token class array: N zeros
+  const L0TokenClassArray = Array(L0TokenOwnerList.length).fill(0);
+
+  // 2.2 send it to the batch_create_token_classes function
+  batch_mint_tokens(
+    L0TokenOwnerList,
+    L0TokenClassArray,
+    L0TokenNumberList    
+  )
+
+  // 2.3 initialize token class array: N ones
+  const L1TokenClassArray = Array(L1TokenOwnerList.length).fill(1);
+  // 2.4 send it to the batch_create_token_classes function
+  batch_mint_tokens(
+    L1TokenOwnerList,
+    L1TokenClassArray,
+    L1TokenNumberList    
+  )
+
+  // 3. add plugins
+
+  // 3.1 add voting rule 1: only approvalThreshold percentage of the board members can approve the operation
+  batch_add_voting_rules(
+    [
+      {
+        votingTokenClassList: [1], // only L1 token holders can vote
+        approvalThresholdPercentage: approvalThreshold, // the percentage of the board members who need to approve the operation
+        votingDurationInSeconds: votingDurationInSeconds, // the duration of the voting process
+        executionDurationInSeconds: executionDurationInSeconds, // the duration of the execution process
+        bIsEnabled: true, // whether the voting rule is enabled
+        notes: "Only approvalThreshold percentage of the board members can approve the operation". // notes
+        bIsAbsoluteMajority: bIsAbsoluteMajority // whether the voting rule is absolute majority
+      }
+    ]
+  );
+
+
+  // plugin 1(before-operation): if operation !== "PAY_CASH" && operation !== "OFFER_DIVIDENDS" && operation !== "CALL_EMERGENCY", then need to be voted and approved by the board members
+  const beforeOpPlugin1 = {
+    
+  }
+
+  // plugin 2(before-operation): if operation === "CALL_EMERGENCY" && opeartor owns at least 1 L1 token, then the operation can be approved
+  const beforeOpPlugin2 = {
+
+  }
+
+  // plugin 3 (after-opeartion): if (operation === "PAY_CASH" && pay cash is dividedable) || operation === "OFFER_DIVIDENDS", then start a vote for execution
+  const afterOpPlugin1 = {
+
+  }
+
+  batch_add_and_enable_plugins(
+    [
+      beforeOpPlugin1,
+      beforeOpPlugin2,
+      afterOpPlugin1
+    ]
+  );
+}
