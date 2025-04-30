@@ -3,6 +3,9 @@
 Welcome to the official repository for the Decentralized Autonomous Regulated Company (DARC) project. DARC is a project
 that aims to create a decentralized autonomous company that is regulated by a plugin system based on commercial laws.
 The project is currently in the early stages of development and is not yet ready for production use.
+This project is supported by the computing resources provided by VTEXS's "Open Source Project Free VPS Program." 
+Thanks to VTEXS for their support of the open source community.
+
 
 English | [简体中文](./README_cn.md) | [日本語](./README_ja.md)
 
